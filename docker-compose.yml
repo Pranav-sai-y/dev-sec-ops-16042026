@@ -1,0 +1,70 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# SBI EMS — Docker Compose
+# DevSecOps Training | Day 2: Container Runtime Security
+#
+# DevSecOps: Secrets injected via .env file (NEVER hardcoded here).
+# .env is in .gitignore — it is never committed to version control.
+#
+# Usage:
+#   cp .env.example .env       # create your local env file
+#   nano .env                  # fill in real values
+#   docker compose up -d
+# ═══════════════════════════════════════════════════════════════════════════════
+services:
+
+  ems:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sbi-ems:latest
+    container_name: sbi-ems
+    ports:
+      - "8080:8080"
+
+    # ── Secrets from .env — never hardcoded ───────────────────────────────────
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - JWT_SECRET=${JWT_SECRET}
+      - DB_URL=${DB_URL:-jdbc:h2:mem:emsdb;DB_CLOSE_DELAY=-1}
+      - DB_USER=${DB_USER:-sa}
+      - DB_PASSWORD=${DB_PASSWORD:-}
+
+    # ── Runtime security constraints (from DevSecOps courseware Module 6.6) ───
+    security_opt:
+      - no-new-privileges:true   # prevents privilege escalation via setuid
+    read_only: false             # set true if app doesn't need to write to FS
+    cap_drop:
+      - ALL                      # drop all Linux capabilities
+    cap_add:
+      - NET_BIND_SERVICE         # only add back what the app needs
+
+    # ── Resource limits — prevent container from consuming host resources ──────
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1.0"
+        reservations:
+          memory: 256m
+
+    # ── Health check ──────────────────────────────────────────────────────────
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # ── Logging ───────────────────────────────────────────────────────────────
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    networks:
+      - ems-network
+
+networks:
+  ems-network:
+    driver: bridge
