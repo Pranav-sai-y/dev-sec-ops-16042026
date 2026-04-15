@@ -1,7 +1,16 @@
 Downloads - 
+
+--- no need to install - only download, extract, set path and use --- 
+
 Java 21 - 
 https://www.oracle.com/in/java/technologies/downloads/#jdk21-windows
 
+Maven - 
+
+https://maven.apache.org/download.cgi 
+
+
+Eclipse 
 
 
 
